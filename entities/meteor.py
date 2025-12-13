@@ -1,5 +1,5 @@
 import math
-from particles import Particle
+from entities.particles import Particle
 
 
 class Meteor:

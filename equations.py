@@ -1,13 +1,14 @@
 # equations.py
-from compositions import Compositions
-from heating import HeatingModel
-from vapor_pressure import VaporPressureModel
-from phase import PhaseModel
-from energy_balance import EnergyBalanceModel
-from ablation import AblationModel
-from breakup import BreakupModel
-from fragment import FragmentModel
-from vaporization_detector import VaporizationDetector
+from entities import Compositions, FragmentModel
+from physics import (
+    HeatingModel,
+    VaporPressureModel,
+    PhaseModel,
+    EnergyBalanceModel,
+    AblationModel,
+    BreakupModel,
+    VaporizationDetector,
+)
 
 class Equations:
     def __init__(self):
