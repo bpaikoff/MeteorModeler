@@ -39,6 +39,8 @@ class Equations:
                 T_air=T_air, dt=dt,
                 composition=meteor.composition,
                 angle_rad=angle_rad,
+                radius=meteor.radius,
+                density=props["density"],
             )
 
             # Partition energy

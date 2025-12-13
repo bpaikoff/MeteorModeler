@@ -39,19 +39,60 @@ class Atmosphere:
         return self.rho0 * math.exp(-h / self.scale_height)
 
     def get_temperature(self, altitude_m: float) -> float:
+        """
+        Returns atmospheric temperature [K] based on U.S. Standard Atmosphere 1976
+        with thermosphere extension for meteor entry physics.
+
+        Layers:
+          - Troposphere (0-11 km): lapse rate -6.5 K/km
+          - Stratosphere lower (11-20 km): isothermal 216.65 K
+          - Stratosphere upper (20-32 km): lapse rate +1.0 K/km
+          - Stratopause (32-47 km): lapse rate +2.8 K/km
+          - Mesosphere lower (47-51 km): isothermal 270.65 K
+          - Mesosphere mid (51-71 km): lapse rate -2.8 K/km
+          - Mesosphere upper (71-85 km): lapse rate -2.0 K/km (mesopause ~186.9 K)
+          - Thermosphere (85-700 km): exponential rise to exospheric temperature
+        """
         h = max(0.0, altitude_m)
-        # ISA-like, simplified piecewise (Kelvin)
+
+        # Troposphere
         if h < 11_000.0:
             return 288.15 - 0.0065 * h
+
+        # Stratosphere lower (isothermal)
         elif h < 20_000.0:
             return 216.65
+
+        # Stratosphere upper
         elif h < 32_000.0:
             return 216.65 + 0.001 * (h - 20_000.0)
+
+        # Stratopause transition
         elif h < 47_000.0:
             return 228.65 + 0.0028 * (h - 32_000.0)
+
+        # Mesosphere lower (isothermal)
+        elif h < 51_000.0:
+            return 270.65
+
+        # Mesosphere mid (cooling)
+        elif h < 71_000.0:
+            return 270.65 - 0.0028 * (h - 51_000.0)
+
+        # Mesosphere upper (cooling to mesopause)
+        elif h < 85_000.0:
+            return 214.65 - 0.002 * (h - 71_000.0)
+
+        # Thermosphere: exponential approach to exospheric temperature
+        # T_exo depends on solar activity (500-2000 K); use moderate value ~1000 K
         else:
-            # Upper-atmosphere simplification
-            return 270.0
+            T_mesopause = 186.65  # K at 85 km
+            T_exospheric = 1000.0  # K, moderate solar activity
+            # Characteristic scale height for thermospheric heating ~50 km
+            scale_height = 50_000.0
+            h_above_mesopause = h - 85_000.0
+            # Asymptotic approach: T = T_exo - (T_exo - T_meso) * exp(-h/H)
+            return T_exospheric - (T_exospheric - T_mesopause) * math.exp(-h_above_mesopause / scale_height)
 
     def get_gravity(self, altitude_m: float) -> float:
         # Mild decrease with altitude (Earth radius ~ 6.371e6 m)
