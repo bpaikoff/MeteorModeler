@@ -1,6 +1,5 @@
-from meteor import Meteor
-from atmosphere import Atmosphere
-from trajectory import Trajectory
+from entities import Meteor
+from physics import Atmosphere, Trajectory
 from equations import Equations
 from lifeforms import Lifeform
 from ui import UI

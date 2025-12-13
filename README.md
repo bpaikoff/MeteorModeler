@@ -84,8 +84,9 @@ P = P_ref × exp(-(L/R) × (1/T - 1/T_ref))
 Key physics:
 - **Above triple point pressure**: solid → liquid → vapor
 - **Below triple point pressure**: solid → vapor (sublimation)
+- **Energy-limited transitions**: Phase changes require both thermodynamic drive AND sufficient energy input
 
-This is critical for ice meteoroids, which sublimate directly at high altitudes where ambient pressure is below 611 Pa.
+This is critical for ice meteoroids, which sublimate directly at high altitudes where ambient pressure is below 611 Pa. The model includes material-specific triple points and minimum sublimation temperatures to prevent instantaneous phase changes.
 
 ### Material Properties
 
@@ -113,23 +114,25 @@ Where f(T) is an efficiency factor:
 
 ### Structural Breakup
 
-The breakup model combines:
+The breakup model implements **progressive fragmentation** rather than binary failure:
 
 1. **Weibull Size Scaling**: Larger bodies have lower effective strength
    ```
    σ_eff ~ σ_base × (r_ref / r)^(1/m)
    ```
 
-2. **Phase Weakening**: Molten/vapor phases reduce strength significantly
+2. **Phase Weakening**: Molten/vapor phases reduce strength significantly (10-60% of base)
 
-3. **Thermal Stress**: Temperature gradients reduce structural integrity
+3. **Thermal Stress**: Temperature gradients reduce structural integrity (25% per 1000K gradient)
 
 4. **Aerodynamic Loading**: Dynamic pressure and bending moments
 
-Breakup occurs when:
-```
-(σ_bending + q_dynamic) / σ_effective > 1
-```
+**Progressive Fragmentation**:
+- **Onset threshold** (stress ratio > 0.7): Fragment shedding begins
+- **Transition zone** (0.7 - 1.5): Probabilistic fragmentation, rate increases with stress
+- **Cascade threshold** (stress ratio > 1.5): Rapid breakup with 50-90% mass loss
+
+Fragment masses follow a power-law distribution (α = 1.8), consistent with observed meteoroid fragmentation.
 
 ## Installation
 
@@ -163,6 +166,14 @@ The simulator will prompt you to select:
 2. **Diameter**: initial meteor diameter in meters
 3. **Lifeform**: hypothetical organism type for survival analysis
 
+### Survival Analysis
+
+The survival model tracks thermal exposure throughout the meteor's descent:
+- If the meteor **fully ablates** before reaching the ground, survival is **0%**
+- If the meteor **reaches the ground**, survival probability is computed using an exponential hazard model based on cumulative thermal exposure above the organism's critical temperature
+
+This reflects the physical reality that biological material cannot survive if its carrier is completely destroyed.
+
 ### Validation/Headless Mode
 
 ```bash
@@ -184,24 +195,30 @@ Runs multiple simulations with varied parameters to analyze statistical outcomes
 ```
 MeteorModeler/
 ├── main.py              # Main entry point with UI
-├── meteor.py            # Meteor object with state tracking
-├── trajectory.py        # Trajectory dynamics and drag
-├── atmosphere.py        # Atmospheric density, temperature, pressure
-├── heating.py           # Aerodynamic and radiative heating
-├── ablation.py          # Mass loss calculations
-├── phase.py             # Phase transition logic
-├── vapor_pressure.py    # Clausius-Clapeyron vapor pressure
-├── energy_balance.py    # Energy partitioning model
-├── breakup.py           # Structural failure and fragmentation
-├── fragment.py          # Fragment thermal evolution
-├── particles.py         # Particle/fragment data class
-├── compositions.py      # Material property database
-├── vaporization_detector.py  # Sustained vaporization detection
-├── lifeforms.py         # Survival probability model
 ├── equations.py         # Coordinator for physics models
+├── lifeforms.py         # Survival probability model
 ├── ui.py                # Pygame visualization
 ├── validate.py          # Headless validation runs
-└── montecarlo.py        # Statistical analysis
+├── montecarlo.py        # Statistical analysis
+│
+├── physics/             # Physics simulation modules
+│   ├── __init__.py      # Package exports
+│   ├── atmosphere.py    # Atmospheric density, temperature, pressure
+│   ├── trajectory.py    # Trajectory dynamics and drag
+│   ├── heating.py       # Aerodynamic and radiative heating
+│   ├── ablation.py      # Mass loss calculations
+│   ├── phase.py         # Phase transition logic
+│   ├── vapor_pressure.py    # Clausius-Clapeyron vapor pressure
+│   ├── energy_balance.py    # Energy partitioning model
+│   ├── breakup.py       # Structural failure and fragmentation
+│   └── vaporization_detector.py  # Sustained vaporization detection
+│
+└── entities/            # Data structures and simulation objects
+    ├── __init__.py      # Package exports
+    ├── meteor.py        # Meteor object with state tracking
+    ├── fragment.py      # Fragment thermal evolution
+    ├── particles.py     # Particle/fragment data class
+    └── compositions.py  # Material property database
 ```
 
 ## Simulation Parameters

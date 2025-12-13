@@ -274,7 +274,7 @@ class BreakupModel:
                 xi = random.random()
                 x_pos = -meteor.radius * (1.0 + 2.0 * xi)
 
-                from particles import Particle
+                from entities.particles import Particle
                 p = Particle(
                     x=x_pos,
                     r=0.01,  # Will be set by shrink_from_mass

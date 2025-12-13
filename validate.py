@@ -1,9 +1,8 @@
 # validate.py
 import math
 from equations import Equations
-from meteor import Meteor
-from trajectory import Trajectory
-from atmosphere import Atmosphere
+from entities import Meteor
+from physics import Trajectory, Atmosphere
 
 def run_case(composition="ice", diameter=1.0, v0=19000.0, angle_deg=45.0, dt=0.02):
     eq = Equations()
