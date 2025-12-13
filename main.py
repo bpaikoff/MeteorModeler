@@ -60,15 +60,20 @@ def main():
 
         if traj.has_hit_ground() or meteor.is_fully_ablated() or t >= max_sim_time:
                 sim_active = False
-                survival_prob = life.survival_probability(temperature_profile, dt)
-                survival_percent = round(100.0 * survival_prob, 1)
 
                 if meteor.is_fully_ablated():
+                    # Nothing survives if the meteor is completely destroyed
                     end_msg = "Meteor fully ablated in the atmosphere."
+                    survival_percent = 0.0
                 elif traj.has_hit_ground():
+                    # Only compute survival if meteor reached ground
+                    survival_prob = life.survival_probability(temperature_profile, dt)
+                    survival_percent = round(100.0 * survival_prob, 1)
                     end_msg = "Meteor reached the ground."
                 else:
                     end_msg = "Simulation time cap reached."
+                    survival_prob = life.survival_probability(temperature_profile, dt)
+                    survival_percent = round(100.0 * survival_prob, 1)
 
                 result_text = f"{end_msg}\nSurvival chance for {life.name}: {survival_percent}%"
 

@@ -14,7 +14,7 @@ class Equations:
         self.materials = Compositions()
         self.heat = HeatingModel()
         self.vapor = VaporPressureModel()
-        self.detector = VaporizationDetector(window=25)
+        self.detector = VaporizationDetector(window=50)  # ~1s history at dt=0.02
         self.phase = PhaseModel(self.vapor, self.detector)
         self.energy = EnergyBalanceModel()
         self.ablation = AblationModel()
@@ -39,6 +39,8 @@ class Equations:
                 T_air=T_air, dt=dt,
                 composition=meteor.composition,
                 angle_rad=angle_rad,
+                radius=meteor.radius,
+                density=props["density"],
             )
 
             # Partition energy
@@ -54,10 +56,11 @@ class Equations:
             meteor.latent_vapor_remaining = max(0.0, meteor.latent_vapor_remaining - part.E_vapor)
             meteor.cum_vapor_used += part.E_vapor
 
-            # Phase evaluation
+            # Phase evaluation (pass P_net for energy-limited sublimation)
             phase_now = self.phase.evaluate(
                 m, props, T_s_new, ambient_pressure, material_key,
-                meteor.latent_fusion_remaining, meteor.latent_vapor_remaining
+                meteor.latent_fusion_remaining, meteor.latent_vapor_remaining,
+                P_net=P_net
             )
             meteor.phase = phase_now
             meteor.core_phase = phase_now
@@ -80,4 +83,7 @@ class Equations:
 
     def check_breakup(self, meteor, rho, v, angle_rad):
         if self.breakup.should_breakup(meteor, rho, v, angle_rad):
-            self.breakup.fragment_cascade(meteor)
+            # Use progressive fragmentation with computed fragment count
+            n_fragments = self.breakup.compute_fragment_count(meteor, rho, v, angle_rad)
+            if n_fragments > 0:
+                self.breakup.fragment_cascade(meteor, n_fragments)

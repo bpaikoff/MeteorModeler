@@ -1,0 +1,266 @@
+# MeteorModeler
+
+A physics-based simulation of meteoroid atmospheric entry, ablation, and thermal evolution. This simulator models the descent of meteoroids through Earth's atmosphere, tracking temperature evolution, phase transitions, mass loss, and structural breakup.
+
+## Overview
+
+MeteorModeler implements a comprehensive physical model for meteor entry phenomena, including:
+
+- **Aerodynamic Heating**: Convective and radiative heating using Sutton-Graves and shock-layer radiation models
+- **Thermal Evolution**: Two-node thermal model with physics-based heat conduction
+- **Phase Transitions**: Clausius-Clapeyron based vapor pressure with sublimation support
+- **Ablation**: Mass loss through melting, vaporization, and spallation
+- **Structural Breakup**: Weibull-scaled strength model with aerodynamic loading
+- **Trajectory Dynamics**: Drag deceleration and gravitational acceleration
+
+## Physical Models
+
+### Atmospheric Model
+
+The atmosphere follows the U.S. Standard Atmosphere 1976 with extensions:
+
+| Layer | Altitude (km) | Temperature Profile |
+|-------|---------------|---------------------|
+| Troposphere | 0-11 | 288.15 K, lapse rate -6.5 K/km |
+| Stratosphere (lower) | 11-20 | Isothermal 216.65 K |
+| Stratosphere (upper) | 20-32 | Lapse rate +1.0 K/km |
+| Stratopause | 32-47 | Lapse rate +2.8 K/km |
+| Mesosphere | 47-85 | Cooling to mesopause (~187 K) |
+| Thermosphere | 85-700 | Exponential rise to ~1000 K |
+
+Density follows an exponential profile with scale height 8.5 km.
+
+### Heating Model
+
+The net heat flux combines multiple mechanisms:
+
+```
+q_net = (q_convective + q_plasma) × f_angle × f_shape - q_radiative_cooling
+```
+
+**Convective Heating** (Sutton-Graves like):
+```
+q_conv ~ k × ρ^0.5 × v^3
+```
+
+**Shock-Layer Radiation**:
+```
+q_rad ~ k × ρ^0.8 × v^2.9
+```
+
+**Radiative Cooling** (Stefan-Boltzmann):
+```
+q_cool = ε × σ × (T_surface^4 - T_ambient^4)
+```
+
+The model transitions smoothly between free-molecular and continuum flow regimes based on altitude (Knudsen number proxy).
+
+### Thermal Conduction
+
+Heat transfer from surface to core uses thermal diffusivity:
+
+```
+α = k / (ρ × cp)    [m²/s]
+```
+
+The penetration depth scales as:
+```
+δ ~ √(α × t)
+```
+
+This captures the physical reality that:
+- Iron meteorites (high k) heat through quickly
+- Stone/carbonaceous (low k) maintain cold cores longer
+- Larger bodies take longer to heat through
+
+### Phase Transitions
+
+The phase model uses Clausius-Clapeyron vapor pressure:
+
+```
+P = P_ref × exp(-(L/R) × (1/T - 1/T_ref))
+```
+
+Key physics:
+- **Above triple point pressure**: solid → liquid → vapor
+- **Below triple point pressure**: solid → vapor (sublimation)
+
+This is critical for ice meteoroids, which sublimate directly at high altitudes where ambient pressure is below 611 Pa.
+
+### Material Properties
+
+| Property | Iron | Stone | Ice | Carbonaceous |
+|----------|------|-------|-----|--------------|
+| Density (kg/m³) | 7800 | 3500 | 917 | 2200 |
+| Specific Heat (J/kg·K) | 450 | 800 | 2090 | 900 |
+| Thermal Conductivity (W/m·K) | 80 | 2 | 2.2 | 1 |
+| Melting Point (K) | 1809 | 1700 | 273 | 1500 |
+| Vaporization Point (K) | 3134 | 2800 | 373 | 2200 |
+| Tensile Strength (Pa) | 10⁸ | 2×10⁷ | 10⁶ | 10⁷ |
+
+### Ablation
+
+Mass loss rate depends on surface temperature relative to phase transition points:
+
+```
+ṁ = f(T) × P_net / L_vap
+```
+
+Where f(T) is an efficiency factor:
+- Below 0.9 × T_fusion: no ablation
+- Between fusion and vaporization: 15-40% efficiency (melting, spallation)
+- Above vaporization: 50-85% efficiency
+
+### Structural Breakup
+
+The breakup model combines:
+
+1. **Weibull Size Scaling**: Larger bodies have lower effective strength
+   ```
+   σ_eff ~ σ_base × (r_ref / r)^(1/m)
+   ```
+
+2. **Phase Weakening**: Molten/vapor phases reduce strength significantly
+
+3. **Thermal Stress**: Temperature gradients reduce structural integrity
+
+4. **Aerodynamic Loading**: Dynamic pressure and bending moments
+
+Breakup occurs when:
+```
+(σ_bending + q_dynamic) / σ_effective > 1
+```
+
+## Installation
+
+### Requirements
+
+- Python 3.10+
+- pygame (for visualization)
+- matplotlib (optional, for analysis plots)
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/MeteorModeler.git
+cd MeteorModeler
+
+# Install dependencies
+pip install pygame matplotlib
+```
+
+## Usage
+
+### Interactive Simulation
+
+```bash
+python main.py
+```
+
+The simulator will prompt you to select:
+1. **Composition**: iron, stone, ice, or carbonaceous
+2. **Diameter**: initial meteor diameter in meters
+3. **Lifeform**: hypothetical organism type for survival analysis
+
+### Validation/Headless Mode
+
+```bash
+python validate.py
+```
+
+Runs a simulation and outputs trajectory data without visualization.
+
+### Monte Carlo Analysis
+
+```bash
+python montecarlo.py
+```
+
+Runs multiple simulations with varied parameters to analyze statistical outcomes.
+
+## Project Structure
+
+```
+MeteorModeler/
+├── main.py              # Main entry point with UI
+├── meteor.py            # Meteor object with state tracking
+├── trajectory.py        # Trajectory dynamics and drag
+├── atmosphere.py        # Atmospheric density, temperature, pressure
+├── heating.py           # Aerodynamic and radiative heating
+├── ablation.py          # Mass loss calculations
+├── phase.py             # Phase transition logic
+├── vapor_pressure.py    # Clausius-Clapeyron vapor pressure
+├── energy_balance.py    # Energy partitioning model
+├── breakup.py           # Structural failure and fragmentation
+├── fragment.py          # Fragment thermal evolution
+├── particles.py         # Particle/fragment data class
+├── compositions.py      # Material property database
+├── vaporization_detector.py  # Sustained vaporization detection
+├── lifeforms.py         # Survival probability model
+├── equations.py         # Coordinator for physics models
+├── ui.py                # Pygame visualization
+├── validate.py          # Headless validation runs
+└── montecarlo.py        # Statistical analysis
+```
+
+## Simulation Parameters
+
+### Entry Conditions (defaults)
+
+| Parameter | Value | Notes |
+|-----------|-------|-------|
+| Entry altitude | 120 km | Top of thermosphere |
+| Entry velocity | 19 km/s | Typical NEA velocity |
+| Entry angle | 45° | From vertical |
+| Timestep | 0.02 s | For numerical stability |
+
+### Physical Constants
+
+| Constant | Value | Symbol |
+|----------|-------|--------|
+| Stefan-Boltzmann | 5.67×10⁻⁸ W/(m²·K⁴) | σ |
+| Universal gas constant | 8.314 J/(mol·K) | R |
+| Sea-level density | 1.225 kg/m³ | ρ₀ |
+| Scale height | 8500 m | H |
+| Sea-level pressure | 101325 Pa | P₀ |
+
+## Scientific References
+
+1. **Meteor Physics**: Ceplecha, Z. et al. (1998). "Meteor Phenomena and Bodies." Space Science Reviews 84, 327-471.
+
+2. **Atmospheric Entry Heating**: Sutton, K. & Graves, R.A. (1971). "A General Stagnation-Point Convective-Heating Equation for Arbitrary Gas Mixtures." NASA TR R-376.
+
+3. **Vapor Pressure**: Wagner, W. & Pruss, A. (2002). "The IAPWS Formulation 1995 for the Thermodynamic Properties of Ordinary Water Substance." J. Phys. Chem. Ref. Data 31, 387-535.
+
+4. **Meteoroid Strength**: Popova, O.P. et al. (2011). "Very Low Strengths of Interplanetary Meteoroids and Small Asteroids." Meteoritics & Planetary Science 46, 1525-1550.
+
+5. **U.S. Standard Atmosphere**: NOAA/NASA/USAF (1976). U.S. Standard Atmosphere, 1976.
+
+## Limitations
+
+- **1D Thermal Model**: Uses a two-node (surface/core) approximation rather than full 3D heat equation
+- **Simplified Aerodynamics**: No full CFD; uses empirical correlations
+- **Spherical Geometry**: Assumes spherical meteoroid shape
+- **Single-Component Materials**: Does not model heterogeneous composition
+- **No Atmospheric Winds**: Assumes still atmosphere
+- **Simplified Fragmentation**: Power-law mass distribution, no detailed fracture mechanics
+
+## Contributing
+
+Contributions are welcome! Areas for improvement include:
+
+- 3D thermal conduction (finite element)
+- Non-spherical shape effects
+- Atmospheric wind/turbulence
+- Multi-component ablation (differential volatility)
+- Real meteor light curve comparison
+- GPU acceleration for Monte Carlo
+
+## License
+
+MIT License - see LICENSE file for details.
+
+## Acknowledgments
+
+This simulator was developed for educational purposes to demonstrate the physics of meteor entry. The models are simplified representations suitable for understanding fundamental principles but should not be used for spacecraft reentry design or impact hazard assessment.
