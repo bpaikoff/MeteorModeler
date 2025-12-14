@@ -8,7 +8,11 @@ from physics import (
     AblationModel,
     BreakupModel,
     VaporizationDetector,
+    PlasmaModel,
+    PlasmaStats,
+    HeatFluxBreakdown,
 )
+
 
 class Equations:
     def __init__(self):
@@ -21,6 +25,11 @@ class Equations:
         self.ablation = AblationModel()
         self.breakup = BreakupModel()
         self.fragments = FragmentModel(self.heat, self.phase, self.energy)
+        self.plasma = PlasmaModel()
+
+        # Latest computed stats for UI access
+        self.latest_heat_flux: HeatFluxBreakdown | None = None
+        self.latest_plasma_stats: PlasmaStats | None = None
 
     def get_composition(self, name: str):
         return self.materials.get(name)
@@ -30,6 +39,27 @@ class Equations:
         A = max(1e-6, meteor.area)
         m = max(1e-6, meteor.mass)
         material_key = meteor.composition
+
+        # Compute heat flux breakdown for UI
+        self.latest_heat_flux = self.heat.compute_heat_flux_breakdown(
+            altitude_m=meteor.eq_altitude,
+            rho=rho, v=v,
+            emissivity_base=props["emissivity"],
+            T_surface=meteor.temperature,
+            T_air=T_air,
+            composition=material_key,
+            angle_rad=angle_rad,
+            fragment_view_factor=0.0 if not meteor.fragmented else 0.15,
+        )
+
+        # Compute plasma stats for UI
+        self.latest_plasma_stats = self.plasma.compute_all(
+            velocity=v,
+            altitude_m=meteor.eq_altitude,
+            density=rho,
+            temperature_freestream=T_air,
+            meteor_radius=meteor.radius,
+        )
 
         # Pre-breakup
         if not meteor.fragmented or not meteor.particles:

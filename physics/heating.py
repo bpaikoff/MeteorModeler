@@ -13,6 +13,10 @@ based on altitude (Knudsen number proxy).
 """
 import math
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from physics.plasma import HeatFluxBreakdown
 
 
 @dataclass
@@ -168,56 +172,95 @@ class HeatingModel:
         """
         Net heat flux into the meteor surface [W/m²].
 
-        Sums convective and radiative heating, subtracts radiative cooling.
-
-        Parameters
-        ----------
-        altitude_m : float
-            Altitude [m]
-        rho : float
-            Atmospheric density [kg/m³]
-        v : float
-            Velocity [m/s]
-        emissivity_base : float
-            Base surface emissivity
-        T_surface : float
-            Current surface temperature [K]
-        T_air : float
-            Ambient air temperature [K]
-        composition : str
-            Material composition
-        angle_rad : float
-            Entry angle from vertical [rad]
-        fragment_view_factor : float
-            View factor for fragment re-radiation
-
-        Returns
-        -------
-        float
-            Net heat flux [W/m²]
+        Delegates to compute_heat_flux_breakdown and returns just the net value.
+        Can be negative when radiative cooling exceeds heating.
         """
+        breakdown = self.compute_heat_flux_breakdown(
+            altitude_m, rho, v, emissivity_base, T_surface, T_air,
+            composition, angle_rad, fragment_view_factor
+        )
+        return breakdown.q_net
+
+    def compute_heat_flux_breakdown(self, altitude_m: float, rho: float, v: float,
+                                     emissivity_base: float, T_surface: float, T_air: float,
+                                     composition: str, angle_rad: float,
+                                     fragment_view_factor: float = 0.0) -> "HeatFluxBreakdown":
+        """
+        Compute detailed breakdown of heat flux contributions.
+
+        Returns a HeatFluxBreakdown dataclass with individual flux components
+        and their relative percentages.
+        """
+        from physics.plasma import HeatFluxBreakdown
+
         # Regime blending
         blend_fm = self._blend_free_molecular(altitude_m)
 
-        # Angle-of-attack diminishes stagnation flux
-        # Blunt entry (low angle) gets most heating
+        # Angle-of-attack factor
         aoa_factor = max(0.3, math.cos(max(0.0, angle_rad)))
         shape = self.coeffs.shape_factor
 
-        q_conv = self.q_convective(rho, v, blend_fm)
-        q_plasma = self.q_plasma(rho, v, blend_fm)
+        # Individual flux components
+        q_conv_raw = self.q_convective(rho, v, blend_fm)
+        q_plasma_raw = self.q_plasma(rho, v, blend_fm)
 
-        # Catalytic recombination pushes convective term up in oxidizing flows
-        q_conv *= (1.0 + self.coeffs.catalytic)
+        # Catalytic augmentation (stored separately for display)
+        q_catalytic = q_conv_raw * self.coeffs.catalytic
 
+        # Total convective with catalytic
+        q_conv_total = q_conv_raw * (1.0 + self.coeffs.catalytic)
+
+        # Fragment re-radiation
+        q_fragment = fragment_view_factor * 0.2 * q_plasma_raw
+
+        # Radiative cooling
         eps_T = self.emissivity_T(emissivity_base, T_surface, composition)
         q_cool = self.q_surface_radiative_cooling(eps_T, T_surface, T_air)
 
-        # Fragment view factor increases re-radiation onto core (optional)
-        q_fragment_reradiation = fragment_view_factor * 0.2 * q_plasma
+        # Apply geometric factors to heating terms
+        q_conv_effective = q_conv_total * aoa_factor * shape
+        q_plasma_effective = q_plasma_raw * aoa_factor * shape
+        q_fragment_effective = q_fragment * aoa_factor * shape
+        q_catalytic_effective = q_catalytic * aoa_factor * shape
 
-        q_net = (q_conv + q_plasma + q_fragment_reradiation) * aoa_factor * shape - q_cool
-        return max(0.0, q_net)
+        # Total heating (before cooling)
+        total_heating = q_conv_effective + q_plasma_effective + q_fragment_effective
+
+        # Net heat flux (can be negative when cooling exceeds heating)
+        q_net = total_heating - q_cool
+
+        # Percentages of total heating (not net)
+        if total_heating > 0:
+            # Convective contribution (without catalytic, for breakdown)
+            pct_conv = 100.0 * (q_conv_effective - q_catalytic_effective) / total_heating
+            pct_rad = 100.0 * (q_plasma_effective + q_fragment_effective) / total_heating
+            pct_cat = 100.0 * q_catalytic_effective / total_heating
+        else:
+            pct_conv = 0.0
+            pct_rad = 0.0
+            pct_cat = 0.0
+
+        # Flow regime classification
+        if blend_fm > 0.9:
+            flow_regime = "free-molecular"
+        elif blend_fm > 0.1:
+            flow_regime = "transitional"
+        else:
+            flow_regime = "continuum"
+
+        return HeatFluxBreakdown(
+            q_convective=q_conv_effective - q_catalytic_effective,
+            q_radiative_shock=q_plasma_effective + q_fragment_effective,
+            q_radiative_cooling=q_cool,
+            q_catalytic=q_catalytic_effective,
+            q_fragment_reradiation=q_fragment_effective,
+            q_net=q_net,
+            pct_convective=pct_conv,
+            pct_radiative=pct_rad,
+            pct_catalytic=pct_cat,
+            flow_regime=flow_regime,
+            blend_factor=blend_fm,
+        )
 
     def compute_biot_number(self, h_conv: float, radius: float, k_thermal: float) -> float:
         """

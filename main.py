@@ -7,7 +7,7 @@ import math
 
 
 def main():
-    ui = UI(width=900, height=700)
+    ui = UI(width=1280, height=700)
     ui.display_intro()
 
     composition, diameter_m, life_choice = ui.get_user_choices()
@@ -40,7 +40,7 @@ def main():
     while running:
         running = ui.handle_events()
 
-        if sim_active:
+        if sim_active and not ui.is_paused():
             rho = atm.get_density(traj.altitude)
             T_air = atm.get_temperature(traj.altitude)
             pressure = atm.get_pressure(traj.altitude)
@@ -76,8 +76,14 @@ def main():
 
                 result_text = f"{end_msg}\nSurvival chance for {life.name}: {survival_percent}%"
 
-        # Render with time and layer
-        ui.update_display(meteor, traj, atm, time_elapsed=t)
+        # Render with time and layer, include heat flux and plasma stats
+        ui.update_display(
+            meteor, traj, atm,
+            time_elapsed=t,
+            heat_flux=eq.latest_heat_flux,
+            plasma_stats=eq.latest_plasma_stats,
+            breakup_events=eq.breakup.state.fragments_shed
+        )
         if not sim_active and result_text is not None:
             ui.show_result_overlay(result_text)
         ui.flip()
