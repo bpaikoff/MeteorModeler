@@ -81,7 +81,8 @@ def main():
             meteor, traj, atm,
             time_elapsed=t,
             heat_flux=eq.latest_heat_flux,
-            plasma_stats=eq.latest_plasma_stats
+            plasma_stats=eq.latest_plasma_stats,
+            breakup_events=eq.breakup.state.fragments_shed
         )
         if not sim_active and result_text is not None:
             ui.show_result_overlay(result_text)

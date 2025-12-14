@@ -224,7 +224,14 @@ The simulator will prompt you to select:
 
 The simulation window displays three panels:
 
-- **Left Panel**: Meteor status (altitude, velocity, temperature, mass, phase)
+- **Left Panel**: Meteor status
+  - Time, atmospheric layer, altitude
+  - Velocity and terminal velocity
+  - Phase state (surface and core)
+  - Surface and core temperatures (K and °F)
+  - Mass and diameter
+  - **Particles**: Total body count (starts at 1, increases with fragmentation)
+  - **Breakups**: Cumulative fragment shedding events
 - **Center**: Visualization of meteor descent with thermal trail
 - **Right Panel**: Real-time physics data
   - *Heat Flux Breakdown*: Individual heating contributions with percentage bar

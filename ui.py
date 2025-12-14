@@ -300,7 +300,7 @@ class UI:
 
         return y + panel_height + 5
 
-    def update_display(self, meteor, traj, atm, time_elapsed=0.0, heat_flux=None, plasma_stats=None):
+    def update_display(self, meteor, traj, atm, time_elapsed=0.0, heat_flux=None, plasma_stats=None, breakup_events=0):
         self.screen.fill(self.sky_color)
 
         # Draw visualization area background
@@ -344,9 +344,12 @@ class UI:
         def K_to_F(Tk):
             return (Tk - 273.15) * 9 / 5 + 32
 
-        particle_count = 0
+        # Particle count: 1 (the meteor itself) + any fragments
         if meteor.particles:
-            particle_count = max(1, sum(1 for p in meteor.particles if p.alive))
+            fragment_count = sum(1 for p in meteor.particles if p.alive)
+            particle_count = 1 + fragment_count  # Core + fragments
+        else:
+            particle_count = 1  # Just the meteor body
 
         layer_name = atm.get_layer_name(traj.altitude)
         v_term = traj.last_terminal_velocity or 0.0
@@ -354,7 +357,7 @@ class UI:
                                                                                              "n/a")
 
         # Draw left panel background
-        panel_y = self.draw_panel_background(0, 0, self.left_panel_width, 280, "Meteor Status")
+        panel_y = self.draw_panel_background(0, 0, self.left_panel_width, 300, "Meteor Status")
 
         hud_lines = [
             f"Time: {time_elapsed:6.2f} s",
@@ -371,6 +374,7 @@ class UI:
             f"Mass: {meteor.mass:.1f} kg",
             f"Diam: {meteor.diameter:.2f} m",
             f"Particles: {particle_count}",
+            f"Breakups: {breakup_events}",
         ]
 
         for i, line in enumerate(hud_lines):
