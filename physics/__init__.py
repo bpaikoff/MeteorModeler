@@ -10,6 +10,7 @@ from physics.breakup import BreakupModel, StrengthParams, AeroParams, Fragmentat
 from physics.vaporization_detector import VaporizationDetector
 from physics.atmosphere import Atmosphere
 from physics.trajectory import Trajectory
+from physics.plasma import PlasmaModel, PlasmaStats, HeatFluxBreakdown
 
 __all__ = [
     "HeatingModel", "HeatingCoeffs", "ThermalProperties", "THERMAL_CONDUCTIVITY",
@@ -21,4 +22,5 @@ __all__ = [
     "VaporizationDetector",
     "Atmosphere",
     "Trajectory",
+    "PlasmaModel", "PlasmaStats", "HeatFluxBreakdown",
 ]
