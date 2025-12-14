@@ -40,7 +40,7 @@ def main():
     while running:
         running = ui.handle_events()
 
-        if sim_active:
+        if sim_active and not ui.is_paused():
             rho = atm.get_density(traj.altitude)
             T_air = atm.get_temperature(traj.altitude)
             pressure = atm.get_pressure(traj.altitude)

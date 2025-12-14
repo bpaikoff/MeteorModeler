@@ -29,6 +29,9 @@ class UI:
         # Trail
         self.trail = []
 
+        # Pause state
+        self.paused = False
+
         # Colors for panels
         self.panel_bg = (20, 25, 40)
         self.panel_border = (60, 70, 100)
@@ -92,9 +95,15 @@ class UI:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                return False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    return False
+                if event.key == pygame.K_SPACE or event.key == pygame.K_p:
+                    self.paused = not self.paused
         return True
+
+    def is_paused(self):
+        return self.paused
 
     def altitude_to_screen_y(self, altitude_m):
         alt_km = max(0.0, altitude_m) / 1000.0
@@ -374,6 +383,51 @@ class UI:
 
         panel_y = self.draw_heat_flux_panel(heat_flux, right_x, panel_y, self.right_panel_width - 10)
         panel_y = self.draw_plasma_panel(plasma_stats, right_x, panel_y, self.right_panel_width - 10)
+
+        # Draw pause indicator if paused
+        if self.paused:
+            self.draw_pause_indicator()
+
+        # Draw controls hint at bottom of visualization area
+        self.draw_controls_hint()
+
+    def draw_pause_indicator(self):
+        """Draw pause indicator in center of visualization area."""
+        viz_center_x = (self.viz_left + self.viz_right) // 2
+        viz_center_y = self.height // 2
+
+        # Semi-transparent background
+        overlay_width = 200
+        overlay_height = 80
+        overlay = pygame.Surface((overlay_width, overlay_height), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 160))
+        self.screen.blit(overlay, (viz_center_x - overlay_width // 2,
+                                   viz_center_y - overlay_height // 2))
+
+        # Pause icon (two vertical bars)
+        bar_width = 12
+        bar_height = 40
+        bar_gap = 16
+        bar_color = (255, 255, 255)
+        left_bar_x = viz_center_x - bar_gap // 2 - bar_width
+        right_bar_x = viz_center_x + bar_gap // 2
+        bar_y = viz_center_y - bar_height // 2 - 10
+
+        pygame.draw.rect(self.screen, bar_color,
+                        pygame.Rect(left_bar_x, bar_y, bar_width, bar_height))
+        pygame.draw.rect(self.screen, bar_color,
+                        pygame.Rect(right_bar_x, bar_y, bar_width, bar_height))
+
+        # PAUSED text
+        surf = self.font.render("PAUSED", True, (255, 255, 255))
+        rect = surf.get_rect(center=(viz_center_x, viz_center_y + 25))
+        self.screen.blit(surf, rect)
+
+    def draw_controls_hint(self):
+        """Draw controls hint at bottom of screen."""
+        hint_text = "[Space/P] Pause  |  [Esc] Quit"
+        surf = self.small_font.render(hint_text, True, (150, 150, 150))
+        self.screen.blit(surf, (self.viz_left + 10, self.height - 25))
 
     def show_result_overlay(self, text):
         # Semi-transparent overlay

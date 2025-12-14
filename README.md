@@ -12,6 +12,8 @@ MeteorModeler implements a comprehensive physical model for meteor entry phenome
 - **Ablation**: Mass loss through melting, vaporization, and spallation
 - **Structural Breakup**: Weibull-scaled strength model with aerodynamic loading
 - **Trajectory Dynamics**: Drag deceleration and gravitational acceleration
+- **Plasma Physics**: Shock layer ionization, electron density, and plasma parameters
+- **Real-time Visualization**: Heat flux breakdown and plasma stats with pause controls
 
 ## Physical Models
 
@@ -54,6 +56,51 @@ q_cool = ε × σ × (T_surface^4 - T_ambient^4)
 ```
 
 The model transitions smoothly between free-molecular and continuum flow regimes based on altitude (Knudsen number proxy).
+
+### Heat Flux Breakdown
+
+The simulation tracks individual contributions to surface heating:
+
+| Component | Description |
+|-----------|-------------|
+| Convective | Stagnation point convective heating |
+| Radiative | Shock-layer thermal radiation |
+| Catalytic | Surface catalytic recombination (~20% of convective) |
+| Cooling | Stefan-Boltzmann surface radiation loss |
+| Net | Total heat flux into the surface |
+
+Contributions are displayed as percentages in a stacked bar visualization.
+
+### Plasma Physics
+
+The shock layer ahead of the meteor creates a high-temperature plasma. The model calculates:
+
+**Shock Properties** (Rankine-Hugoniot relations):
+```
+T_shock = f(v, T_freestream)   # High-enthalpy correlation
+ρ₂/ρ₁ = (γ+1)M² / (2 + (γ-1)M²)
+δ/R ≈ 0.143 × exp(3.24/M²)    # Shock standoff
+```
+
+**Ionization** (Saha equation):
+```
+α²/(1-α) = K(T)/n    where K(T) ∝ T^(3/2) × exp(-χ/kT)
+n_e = α × n_gas      # Electron density
+```
+
+**Plasma Parameters**:
+- **Debye Length**: λ_D = √(ε₀kT_e / n_e·e²) — shielding distance
+- **Plasma Frequency**: ω_pe = √(n_e·e² / ε₀·m_e) — oscillation frequency
+- **Electrical Conductivity**: Spitzer formula with Coulomb logarithm
+- **Magnetic Reynolds Number**: R_m = μ₀·σ·v·L — MHD coupling
+
+**Dissociation**:
+```
+O₂ → 2O   (θ_d ≈ 59,500 K)
+N₂ → 2N   (θ_d ≈ 113,000 K)
+```
+
+At typical meteor velocities (10-20 km/s), shock temperatures reach 5,000-15,000 K, causing significant dissociation and partial ionization.
 
 ### Thermal Conduction
 
@@ -166,6 +213,23 @@ The simulator will prompt you to select:
 2. **Diameter**: initial meteor diameter in meters
 3. **Lifeform**: hypothetical organism type for survival analysis
 
+### Keyboard Controls
+
+| Key | Action |
+|-----|--------|
+| **Space** or **P** | Pause/Resume simulation |
+| **Escape** | Quit simulation |
+
+### User Interface
+
+The simulation window displays three panels:
+
+- **Left Panel**: Meteor status (altitude, velocity, temperature, mass, phase)
+- **Center**: Visualization of meteor descent with thermal trail
+- **Right Panel**: Real-time physics data
+  - *Heat Flux Breakdown*: Individual heating contributions with percentage bar
+  - *Plasma Properties*: Shock layer, ionization, and flow parameters
+
 ### Survival Analysis
 
 The survival model tracks thermal exposure throughout the meteor's descent:
@@ -206,6 +270,7 @@ MeteorModeler/
 │   ├── atmosphere.py    # Atmospheric density, temperature, pressure
 │   ├── trajectory.py    # Trajectory dynamics and drag
 │   ├── heating.py       # Aerodynamic and radiative heating
+│   ├── plasma.py        # Shock layer plasma physics
 │   ├── ablation.py      # Mass loss calculations
 │   ├── phase.py         # Phase transition logic
 │   ├── vapor_pressure.py    # Clausius-Clapeyron vapor pressure
@@ -253,6 +318,10 @@ MeteorModeler/
 4. **Meteoroid Strength**: Popova, O.P. et al. (2011). "Very Low Strengths of Interplanetary Meteoroids and Small Asteroids." Meteoritics & Planetary Science 46, 1525-1550.
 
 5. **U.S. Standard Atmosphere**: NOAA/NASA/USAF (1976). U.S. Standard Atmosphere, 1976.
+
+6. **Plasma Physics**: Park, C. (1989). "Nonequilibrium Hypersonic Aerothermodynamics." Wiley-Interscience.
+
+7. **High-Temperature Gas Dynamics**: Anderson, J.D. (2006). "Hypersonic and High-Temperature Gas Dynamics." AIAA Education Series.
 
 ## Limitations
 
