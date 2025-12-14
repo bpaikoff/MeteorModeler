@@ -221,7 +221,7 @@ class HeatingModel:
         q_fragment_reradiation = fragment_view_factor * 0.2 * q_plasma
 
         q_net = (q_conv + q_plasma + q_fragment_reradiation) * aoa_factor * shape - q_cool
-        return max(0.0, q_net)
+        return q_net  # Can be negative when cooling exceeds heating
 
     def compute_heat_flux_breakdown(self, altitude_m: float, rho: float, v: float,
                                      emissivity_base: float, T_surface: float, T_air: float,
@@ -268,8 +268,8 @@ class HeatingModel:
         # Total heating (before cooling)
         total_heating = q_conv_effective + q_plasma_effective + q_fragment_effective
 
-        # Net heat flux
-        q_net = max(0.0, total_heating - q_cool)
+        # Net heat flux (can be negative when cooling exceeds heating)
+        q_net = total_heating - q_cool
 
         # Percentages of total heating (not net)
         if total_heating > 0:
