@@ -2,6 +2,8 @@
 
 A physics-based simulation of meteoroid atmospheric entry, ablation, and thermal evolution. This simulator models the descent of meteoroids through Earth's atmosphere, tracking temperature evolution, phase transitions, mass loss, and structural breakup.
 
+<img width="1282" height="732" alt="image" src="https://github.com/user-attachments/assets/16e9616d-0c02-437b-a582-262ea30d0b25" />
+
 ## Overview
 
 MeteorModeler implements a comprehensive physical model for meteor entry phenomena, including:
